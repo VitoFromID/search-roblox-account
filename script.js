@@ -6,20 +6,23 @@ async function searchUser() {
     document.getElementById('result').style.display = "block";
     
     try {
-        const targetUrl = encodeURIComponent("https://users.roblox.com/v1/usernames/users");
-        const response = await fetch(`${proxy}${targetUrl}&body=${JSON.stringify({usernames:[user],excludeBannedUsers:false})}`);
+        // Ambil data user
+        const targetUrl = encodeURIComponent(`https://users.roblox.com/v1/usernames/users`);
+        const payload = { usernames: [user], excludeBannedUsers: false };
+        
+        const response = await fetch(`${proxy}${targetUrl}&body=${JSON.stringify(payload)}`);
         const result = await response.json();
         const data = JSON.parse(result.contents);
 
         if (!data.data || data.data.length === 0) {
-            alert("Username salah atau tidak ada!");
+            alert("Username tidak ditemukan di Roblox.");
             return;
         }
 
         const userId = data.data[0].id;
         const realName = data.data[0].name;
 
-        // Ambil Foto & Detail
+        // Ambil Foto & Detail Deskripsi
         const thumbUrl = encodeURIComponent(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png`);
         const detailUrl = encodeURIComponent(`https://users.roblox.com/v1/users/${userId}`);
 
@@ -31,12 +34,13 @@ async function searchUser() {
         const tData = JSON.parse(tRes.contents);
         const dData = JSON.parse(dRes.contents);
 
+        // Update Tampilan
         document.getElementById('avatar').src = tData.data[0].imageUrl;
         document.getElementById('displayName').innerText = data.data[0].displayName;
         document.getElementById('userName').innerText = `@${realName}`;
         document.getElementById('userBio').innerText = dData.description || "No Bio.";
 
-        // Logic Badge
+        // Badge Spesial
         const label = document.getElementById('special-label');
         const lowName = realName.toLowerCase();
         if (lowName === "vitofromid") {
@@ -48,6 +52,6 @@ async function searchUser() {
         }
 
     } catch (e) {
-        alert("Server sibuk, coba klik 'Cari' lagi sekali lagi!");
+        alert("Server sibuk, coba klik 'Cari' lagi.");
     }
 }
