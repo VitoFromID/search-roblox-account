@@ -16,19 +16,20 @@ createParticles();
 
 async function searchUser() {
     const user = document.getElementById('username').value;
-    // PROXY BARU AGAR TIDAK LOADING TERUS
-    const proxy = "https://api.allorigins.win/raw?url=";
+    // PAKAI PROXY ALLORIGINS (LEBIH STABIL)
+    const proxy = "https://api.allorigins.win/get?url=";
     
     if (!user) return;
     document.getElementById('result').style.display = "block";
     
     try {
-        const res = await fetch(proxy + encodeURIComponent("https://users.roblox.com/v1/usernames/users"), {
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usernames: [user], excludeBannedUsers: false })
+        // Ambil data User ID
+        const targetUrl = encodeURIComponent("https://users.roblox.com/v1/usernames/users");
+        const res = await fetch(`${proxy}${targetUrl}`, {
+            method: 'GET' // AllOrigins bekerja lebih baik dengan GET untuk bypass CORS
         });
-        const data = await res.json();
+        const proxyData = await res.json();
+        const data = JSON.parse(proxyData.contents); // AllOrigins membungkus data dalam 'contents'
         
         if (!data.data || data.data.length === 0) {
             alert("User tidak ditemukan!");
@@ -38,14 +39,20 @@ async function searchUser() {
         const userId = data.data[0].id;
         const realName = data.data[0].name;
 
-        // Ambil data detail, foto, dan baju pakai proxy baru
+        // Fungsi bantu untuk fetch lewat proxy
+        const fetchRoblox = async (path) => {
+            const r = await fetch(`${proxy}${encodeURIComponent(path)}`);
+            const d = await r.json();
+            return JSON.parse(d.contents);
+        };
+
         const [detail, thumb, wear, friend, follow, following] = await Promise.all([
-            fetch(proxy + encodeURIComponent(`https://users.roblox.com/v1/users/${userId}`)).then(r => r.json()),
-            fetch(proxy + encodeURIComponent(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png`)).then(r => r.json()),
-            fetch(proxy + encodeURIComponent(`https://avatar.roblox.com/v1/users/${userId}/currently-wearing`)).then(r => r.json()),
-            fetch(proxy + encodeURIComponent(`https://friends.roblox.com/v1/users/${userId}/friends/count`)).then(r => r.json()),
-            fetch(proxy + encodeURIComponent(`https://friends.roblox.com/v1/users/${userId}/followers/count`)).then(r => r.json()),
-            fetch(proxy + encodeURIComponent(`https://friends.roblox.com/v1/users/${userId}/followings/count`)).then(r => r.json())
+            fetchRoblox(`https://users.roblox.com/v1/users/${userId}`),
+            fetchRoblox(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png`),
+            fetchRoblox(`https://avatar.roblox.com/v1/users/${userId}/currently-wearing`),
+            fetchRoblox(`https://friends.roblox.com/v1/users/${userId}/friends/count`),
+            fetchRoblox(`https://friends.roblox.com/v1/users/${userId}/followers/count`),
+            fetchRoblox(`https://friends.roblox.com/v1/users/${userId}/followings/count`)
         ]);
 
         document.getElementById('avatar').src = thumb.data[0].imageUrl;
@@ -53,7 +60,7 @@ async function searchUser() {
         document.getElementById('userName').innerText = `@${realName}`;
         document.getElementById('userBio').innerText = detail.description || "I really love my gf.";
 
-        // LOGIKA BADGE SPESIAL
+        // BADGE SPESIAL
         const label = document.getElementById('special-label');
         const lowName = realName.toLowerCase();
         
@@ -76,7 +83,7 @@ async function searchUser() {
         const accList = document.getElementById('accessory-list');
         accList.innerHTML = "";
         if (wear.assetIds && wear.assetIds.length > 0) {
-            const aRes = await fetch(proxy + encodeURIComponent(`https://thumbnails.roblox.com/v1/assets?assetIds=${wear.assetIds.join(',')}&size=150x150&format=Png`)).then(r => r.json());
+            const aRes = await fetchRoblox(`https://thumbnails.roblox.com/v1/assets?assetIds=${wear.assetIds.join(',')}&size=150x150&format=Png`);
             wear.assetIds.forEach((id, index) => {
                 if(aRes.data && aRes.data[index]) {
                     accList.innerHTML += `<a href="https://www.roblox.com/catalog/${id}" target="_blank" class="item-card"><img src="${aRes.data[index].imageUrl}" class="acc-img"></a>`;
@@ -85,6 +92,6 @@ async function searchUser() {
         }
     } catch (e) { 
         console.error(e);
-        alert("Gagal ambil data, coba lagi!");
+        alert("Gagal ambil data, coba refresh halaman!");
     }
-}
+                   }
