@@ -1,83 +1,81 @@
 async function searchUser() {
     const user = document.getElementById('username').value;
-    // Menggunakan proxy AllOrigins yang lebih stabil untuk bypass CORS
-    const proxy = "https://api.allorigins.win/raw?url=";
+    const proxy = "https://corsproxy.io/?";
     
     if (!user) {
         alert("Masukkan username dulu!");
         return;
     }
     
-    const resultDiv = document.getElementById('result');
-    const statsDiv = document.getElementById('stats');
-    const accList = document.getElementById('accessory-list');
+    document.getElementById('result').style.display = "block";
     
-    // Tampilkan box dan beri efek loading
-    resultDiv.style.display = "block";
-    resultDiv.style.opacity = "0.6";
-
     try {
-        // 1. CARI USER ID BERDASARKAN USERNAME
-        const searchUrl = `https://users.roblox.com/v1/users/search?keyword=${user}&limit=1`;
-        const searchRes = await fetch(`${proxy}${encodeURIComponent(searchUrl)}`);
-        const searchData = await searchRes.json();
+        // AMBIL DATA USER
+        const userUrl = encodeURIComponent(`https://users.roblox.com/v1/usernames/users`);
+        const response = await fetch(`${proxy}${userUrl}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usernames: [user], excludeBannedUsers: false })
+        });
+        const data = await response.json();
 
-        if (!searchData.data || searchData.data.length === 0) {
+        if (!data.data || data.data.length === 0) {
             alert("Username tidak ditemukan!");
-            resultDiv.style.display = "none";
+            document.getElementById('result').style.display = "none";
             return;
         }
 
-        const userId = searchData.data[0].id;
-        const displayName = searchData.data[0].displayName;
-        const realName = searchData.data[0].name;
+        const userId = data.data[0].id;
+        const realName = data.data[0].name;
 
-        // 2. AMBIL DATA DETAIL, AVATAR, DAN ITEM YANG DIPAKAI
-        const detailUrl = `https://users.roblox.com/v1/users/${userId}`;
-        const thumbUrl = `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`;
-        const wearUrl = `https://avatar.roblox.com/v1/users/${userId}/currently-wearing`;
+        // AMBIL FOTO, DETAIL, & WEARING
+        const thumbUrl = encodeURIComponent(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png`);
+        const detailUrl = encodeURIComponent(`https://users.roblox.com/v1/users/${userId}`);
+        const avatarUrl = encodeURIComponent(`https://avatar.roblox.com/v1/users/${userId}/currently-wearing`);
 
-        const [dRes, tRes, wRes] = await Promise.all([
-            fetch(`${proxy}${encodeURIComponent(detailUrl)}`).then(r => r.json()),
-            fetch(`${proxy}${encodeURIComponent(thumbUrl)}`).then(r => r.json()),
-            fetch(`${proxy}${encodeURIComponent(wearUrl)}`).then(r => r.json())
+        const [tRes, dRes, aRes] = await Promise.all([
+            fetch(`${proxy}${thumbUrl}`).then(r => r.json()),
+            fetch(`${proxy}${detailUrl}`).then(r => r.json()),
+            fetch(`${proxy}${avatarUrl}`).then(r => r.json())
         ]);
 
-        // 3. UPDATE TAMPILAN PROFIL
+        // UPDATE TAMPILAN
         document.getElementById('avatar').src = tRes.data[0].imageUrl;
-        document.getElementById('displayName').innerText = displayName;
+        document.getElementById('displayName').innerText = data.data[0].displayName;
         document.getElementById('userName').innerText = `@${realName}`;
-        document.getElementById('userBio').innerText = dRes.description || "No bio description.";
+        document.getElementById('userBio').innerText = dRes.description || "I really love my gf.";
 
-        // 4. UPDATE STATS (ID, TANGGAL JOIN, STATUS)
-        const joinDate = new Date(dRes.created).toLocaleDateString('id-ID', { 
-            year: 'numeric', month: 'long', day: 'numeric' 
-        });
-        
-        statsDiv.innerHTML = `
-            <div><strong>User ID:</strong><br>${userId}</div>
-            <div><strong>Joined:</strong><br>${joinDate}</div>
-            <div><strong>Account:</strong><br>${dRes.isBanned ? 'Banned ❌' : 'Safe ✅'}</div>
-            <div><strong>Verified:</strong><br>${dRes.hasVerifiedBadge ? 'Yes ☑️' : 'No'}</div>
+        // STATS GRID
+        const created = new Date(dRes.created).toLocaleDateString('id-ID');
+        document.getElementById('stats').innerHTML = `
+            <div><strong>User ID:</strong> ${userId}</div>
+            <div><strong>Banned:</strong> ${dRes.isBanned ? "Yes" : "No"}</div>
+            <div><strong>Created:</strong> ${created}</div>
+            <div><strong>Verified:</strong> ${dRes.hasVerifiedBadge ? "✓" : "✗"}</div>
         `;
 
-        // 5. UPDATE ITEM "WEARING" (MENGAMBIL GAMBAR ITEM)
-        accList.innerHTML = "";
-        if (wRes.assetIds && wRes.assetIds.length > 0) {
-            wRes.assetIds.slice(0, 8).forEach(id => {
-                const itemImg = `https://www.roblox.com/asset-thumbnail/image?assetId=${id}&width=150&height=150&format=png`;
-                accList.innerHTML += `
-                    <div class="item-card">
-                        <img src="${itemImg}" class="acc-img">
-                    </div>`;
-            });
+        // WEARING ITEMS
+        const accessories = aRes.assetIds || [];
+        const accList = document.getElementById('accessory-list');
+        
+        if (accessories.length === 0) {
+            accList.innerHTML = '<p style="grid-column: 1/-1; color: #666; font-size: 12px;">Tidak ada item</p>';
         } else {
-            accList.innerHTML = "<p style='grid-column: span 4; font-size: 11px;'>No public items.</p>";
+            const items = accessories.slice(0, 8); // ambil max 8 item
+            const thumbIds = items.join(',');
+            const itemThumbUrl = encodeURIComponent(`https://thumbnails.roblox.com/v1/assets?assetIds=${thumbIds}&size=150x150&format=Png`);
+            
+            const itemRes = await fetch(`${proxy}${itemThumbUrl}`).then(r => r.json());
+            
+            accList.innerHTML = itemRes.data.map(item => 
+                `<div class="item-card"><img src="${item.imageUrl}" class="acc-img" alt="Item"></div>`
+            ).join('');
         }
 
-        // 6. LOGIKA BADGE KHUSUS
+        // LOGIKA BADGE SPESIAL
         const label = document.getElementById('special-label');
         const lowName = realName.toLowerCase();
+        
         if (lowName === "vitofromid") {
             label.innerHTML = '<span class="badge-vito">Owner 👑</span>';
         } else if (lowName === "isskka44") {
@@ -86,11 +84,25 @@ async function searchUser() {
             label.innerHTML = '';
         }
 
-        resultDiv.style.opacity = "1";
-
-    } catch (error) {
-        console.error(error);
-        alert("Gagal memuat data. Coba klik Cari lagi!");
-        resultDiv.style.opacity = "1";
+    } catch (e) {
+        console.error("Error:", e);
+        alert("Gagal memuat data. Coba lagi!");
+        document.getElementById('result').style.display = "none";
     }
-            }
+}
+
+// EFEK PARTIKEL
+function createParticles() {
+    const container = document.getElementById('particles-container');
+    setInterval(() => {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.width = particle.style.height = (Math.random() * 4 + 2) + 'px';
+        particle.style.animationDuration = (Math.random() * 3 + 4) + 's';
+        container.appendChild(particle);
+        setTimeout(() => particle.remove(), 7000);
+    }, 300);
+}
+
+createParticles();
