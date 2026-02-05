@@ -1,6 +1,6 @@
 async function searchUser() {
     const user = document.getElementById('username').value;
-    // PAKAI PROXY BARU: CORSPROXY.IO (Lebih kuat dari AllOrigins)
+    // Proxy paling kuat untuk tembus blokir
     const proxy = "https://corsproxy.io/?";
     
     if (!user) return;
@@ -53,6 +53,6 @@ async function searchUser() {
 
     } catch (e) {
         console.error(e);
-        alert("Gagal ambil data, coba klik cari lagi!");
+        alert("Server sibuk, klik Cari sekali lagi!");
     }
-            }
+}
