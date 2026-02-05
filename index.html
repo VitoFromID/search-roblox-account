@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Search - Vito Premium</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="particles-container"></div>
+    <div class="bottom-glow"></div> <div class="container">
+        <h1 class="glow-text">ROBLOX SEARCH</h1>
+        <div class="search-box">
+            <input type="text" id="username" placeholder="Username Roblox...">
+            <button onclick="searchUser()">Cari</button>
+        </div>
+
+        <div id="result" class="profile-card" style="display: none;">
+            <div id="special-label"></div>
+            <div class="avatar-wrap">
+                <div class="neon-ring"></div>
+                <img id="avatar" src="" alt="Avatar">
+            </div>
+            <h2 id="displayName"></h2>
+            <p id="userName"></p>
+            <p id="userBio" class="bio-text"></p>
+            
+            <div id="stats" class="stats-grid"></div>
+
+            <h3 class="line-title">Wearing</h3>
+            <div id="accessory-list" class="item-grid"></div>
+            
+            <h3 class="line-title">Favorite Maps</h3>
+            <div class="maintenance-box">🚧 Fitur Map Favorit (Maintenance)</div>
+        </div>
+    </div>
+
+    <p class="footer">Created by Vito</p>
+    <script src="script.js"></script>
+</body>
+</html>
