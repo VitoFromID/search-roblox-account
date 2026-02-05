@@ -78,7 +78,7 @@ async function searchUser() {
         if (wear.assetIds && wear.assetIds.length > 0) {
             const aRes = await fetch(proxy + encodeURIComponent(`https://thumbnails.roblox.com/v1/assets?assetIds=${wear.assetIds.join(',')}&size=150x150&format=Png`)).then(r => r.json());
             wear.assetIds.forEach((id, index) => {
-                if(aRes.data[index]) {
+                if(aRes.data && aRes.data[index]) {
                     accList.innerHTML += `<a href="https://www.roblox.com/catalog/${id}" target="_blank" class="item-card"><img src="${aRes.data[index].imageUrl}" class="acc-img"></a>`;
                 }
             });
