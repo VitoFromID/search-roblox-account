@@ -1,39 +1,43 @@
 async function searchUser() {
     const user = document.getElementById('username').value;
-    // Proxy AllOrigins versi paling stabil
-    const proxy = "https://api.allorigins.win/get?url=";
+    // PAKAI PROXY BARU: CORSPROXY.IO (Lebih kuat dari AllOrigins)
+    const proxy = "https://corsproxy.io/?";
     
     if (!user) return;
     document.getElementById('result').style.display = "block";
     
     try {
-        // AMBIL DATA USER (Sengaja pakai API yang simpel biar gak loading)
-        const targetUrl = encodeURIComponent(`https://users.roblox.com/v1/usernames/users`);
-        
-        // Menambahkan parameter di URL agar Proxy bisa baca (Metode GET)
-        const response = await fetch(`${proxy}${targetUrl}%3Fusernames=${user}%26excludeBannedUsers=false`);
-        const result = await response.json();
-        const data = JSON.parse(result.contents);
+        // AMBIL DATA USER
+        const userUrl = encodeURIComponent(`https://users.roblox.com/v1/usernames/users`);
+        const response = await fetch(`${proxy}${userUrl}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usernames: [user], excludeBannedUsers: false })
+        });
+        const data = await response.json();
 
         if (!data.data || data.data.length === 0) {
-            alert("Username tidak ditemukan! Coba ketik yang benar.");
+            alert("Username tidak ditemukan!");
             return;
         }
 
         const userId = data.data[0].id;
         const realName = data.data[0].name;
 
-        // AMBIL FOTO
+        // AMBIL FOTO & DETAIL
         const thumbUrl = encodeURIComponent(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png`);
-        const thumbRes = await fetch(`${proxy}${thumbUrl}`);
-        const thumbDataRaw = await thumbRes.json();
-        const thumbData = JSON.parse(thumbDataRaw.contents);
+        const detailUrl = encodeURIComponent(`https://users.roblox.com/v1/users/${userId}`);
+
+        const [tRes, dRes] = await Promise.all([
+            fetch(`${proxy}${thumbUrl}`).then(r => r.json()),
+            fetch(`${proxy}${detailUrl}`).then(r => r.json())
+        ]);
 
         // UPDATE TAMPILAN
-        document.getElementById('avatar').src = thumbData.data[0].imageUrl;
+        document.getElementById('avatar').src = tRes.data[0].imageUrl;
         document.getElementById('displayName').innerText = data.data[0].displayName;
         document.getElementById('userName').innerText = `@${realName}`;
-        document.getElementById('userBio').innerText = "Account Found!";
+        document.getElementById('userBio').innerText = dRes.description || "I really love my gf.";
 
         // LOGIKA BADGE SPESIAL
         const label = document.getElementById('special-label');
@@ -51,4 +55,4 @@ async function searchUser() {
         console.error(e);
         alert("Gagal ambil data, coba klik cari lagi!");
     }
-}
+            }
